@@ -73,7 +73,7 @@ jobs:
     - name: Run docfx
       working-directory: temp_folder/docfx_input
       run: |
-        mono docfx.exe metadata
+        mono docfx.exe
 
     - name: Run Python script
       run: |
