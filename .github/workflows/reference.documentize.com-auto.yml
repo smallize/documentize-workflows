@@ -32,8 +32,11 @@ jobs:
       run: |
         wget https://github.com/dotnet/docfx/releases/download/v2.59.3/docfx.zip -O docfx.zip
         unzip docfx.zip -d docfx
-        sudo mv docfx/docfx.exe /usr/local/bin/docfx.exe
-        sudo chmod +x /usr/local/bin/docfx.exe
+        sudo mv docfx /usr/local/docfx
+        sudo chmod +x /usr/local/docfx/docfx.exe
+
+    - name: Add docfx to PATH
+      run: echo "/usr/local/docfx" >> $GITHUB_PATH
 
     - name: Find latest zip file
       id: find_zip
@@ -75,7 +78,7 @@ jobs:
     - name: Run docfx
       working-directory: temp_folder/docfx_input
       run: |
-        mono /usr/local/bin/docfx.exe metadata
+        mono docfx.exe metadata
 
     - name: Run Python script
       run: |
