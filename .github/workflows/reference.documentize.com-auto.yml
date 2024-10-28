@@ -49,8 +49,8 @@ jobs:
 
     - name: Copy documentize.dll and documentize.xml
       run: |
-        cp temp_folder/*.dll temp_folder/docfx_input/
-        cp temp_folder/*.xml temp_folder/docfx_input/
+        cp temp_folder/lib/*.dll temp_folder/docfx_input/
+        cp temp_folder/lib/*.xml temp_folder/docfx_input/
 
     - name: Create docfx.json
       run: |
