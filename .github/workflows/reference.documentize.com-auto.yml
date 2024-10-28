@@ -1,0 +1,129 @@
+name: reference.documentize.com-auto
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment'
+        type: environment
+        default: staging
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        repository: smallize/documentize
+        token: ${{ secrets.REPO_TOKEN }}
+        fetch-depth: 0
+        submodules: true
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y mono-complete unzip python3-pip
+        python3 -m pip install --upgrade pip
+        python3 -m pip install beautifulsoup4
+
+    - name: Install docfx
+      run: |
+        wget https://github.com/dotnet/docfx/releases/download/v2.59.3/docfx.zip -O docfx.zip
+        unzip docfx.zip -d docfx
+        sudo mv docfx/docfx.exe /usr/local/bin/docfx.exe
+        sudo chmod +x /usr/local/bin/docfx.exe
+
+    - name: Find latest zip file
+      id: find_zip
+      shell: bash
+      run: |
+        latest_zip=$(ls static/packages/Documentize.*.zip | sort -V | tail -n1)
+        echo "Latest zip file is $latest_zip"
+        echo "zip_file=$latest_zip" >> $GITHUB_OUTPUT
+
+    - name: Extract zip file
+      run: |
+        mkdir -p temp_folder
+        unzip -o "${{ steps.find_zip.outputs.zip_file }}" -d temp_folder
+
+    - name: Find documentize.dll and documentize.xml
+      run: |
+        mkdir -p temp_folder/docfx_input
+        find temp_folder -type f -name 'documentize.dll' -exec cp {} temp_folder/docfx_input/ \;
+        find temp_folder -type f -name 'documentize.xml' -exec cp {} temp_folder/docfx_input/ \;
+
+    - name: Create docfx.json
+      run: |
+        cat <<EOF > temp_folder/docfx_input/docfx.json
+        {
+          "metadata": [
+            {
+              "src": [
+                {
+                  "files": ["documentize.dll"]
+                }
+              ],
+              "dest": "api",
+              "outputFormat": "markdown"
+            }
+          ]
+        }
+        EOF
+
+    - name: Run docfx
+      working-directory: temp_folder/docfx_input
+      run: |
+        mono /usr/local/bin/docfx.exe metadata
+
+    - name: Run Python script
+      run: |
+        python3 scripts/postprocessor.py temp_folder/docfx_input/api
+
+    - name: Copy files
+      run: |
+        mkdir -p content/reference.documentize.com/en/
+        cp -r temp_folder/docfx_input/api/* content/reference.documentize.com/en/
+
+    - name: Clean up
+      run: |
+        rm -rf temp_folder
+
+    - name: Configure git
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+
+    - name: Commit changes
+      run: |
+        git add content/reference.documentize.com/en/
+        git commit -m "Update API documentation" || echo "No changes to commit"
+
+    - name: Push changes
+      run: |
+        git push origin HEAD
+
+    - name: Setup Hugo
+      uses: peaceiris/actions-hugo@v2
+      with:
+        hugo-version: 'latest'
+        extended: true
+
+    - name: Determine Base URL
+      id: base-url
+      run: |
+        if [ "${{ github.event.inputs.environment }}" = "production" ]; then
+          echo "url=https://reference.documentize.com" >> $GITHUB_OUTPUT
+        else
+          echo "url=https://reference-qa.documentize.com" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Build
+      run: hugo --config "configs/reference.documentize.com.toml","configs/common.documentize.com.toml" -b "${{ steps.base-url.outputs.url }}" --cleanDestinationDir --minify --templateMetrics --templateMetricsHints --enableGitInfo
+
+    - name: Deploy
+      run: hugo deploy --config "configs/reference.documentize.com.toml" --maxDeletes=-1 --target "${{ github.event.inputs.environment }}" --invalidateCDN --force
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS }}
