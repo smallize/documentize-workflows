@@ -28,16 +28,6 @@ jobs:
         python3 -m pip install --upgrade pip
         python3 -m pip install beautifulsoup4
 
-    - name: Install docfx
-      run: |
-        wget https://github.com/dotnet/docfx/releases/download/v2.59.3/docfx.zip -O docfx.zip
-        unzip docfx.zip -d docfx
-        sudo mv docfx /usr/local/docfx
-        sudo chmod +x /usr/local/docfx/docfx.exe
-
-    - name: Add docfx to PATH
-      run: echo "/usr/local/docfx" >> $GITHUB_PATH
-
     - name: Find latest zip file
       id: find_zip
       shell: bash
@@ -46,16 +36,21 @@ jobs:
         echo "Latest zip file is $latest_zip"
         echo "zip_file=$latest_zip" >> $GITHUB_OUTPUT
 
-    - name: Extract zip file
-      run: |
-        mkdir -p temp_folder
-        unzip -o "${{ steps.find_zip.outputs.zip_file }}" -d temp_folder
-
-    - name: Find documentize.dll and documentize.xml
+    - name: Extract the latest zip file
       run: |
         mkdir -p temp_folder/docfx_input
-        find temp_folder -type f -name 'documentize.dll' -exec cp {} temp_folder/docfx_input/ \;
-        find temp_folder -type f -name 'documentize.xml' -exec cp {} temp_folder/docfx_input/ \;
+        unzip -o "${{ steps.find_zip.outputs.zip_file }}" -d temp_folder
+
+    - name: Download and extract docfx
+      run: |
+        wget https://github.com/dotnet/docfx/releases/download/v2.59.3/docfx.zip -O docfx.zip
+        unzip docfx.zip -d temp_folder/docfx_input
+        chmod +x temp_folder/docfx_input/docfx.exe
+
+    - name: Copy documentize.dll and documentize.xml
+      run: |
+        cp temp_folder/*.dll temp_folder/docfx_input/
+        cp temp_folder/*.xml temp_folder/docfx_input/
 
     - name: Create docfx.json
       run: |
@@ -95,8 +90,8 @@ jobs:
 
     - name: Configure git
       run: |
-        git config user.name "GitHub Actions"
-        git config user.email "actions@github.com"
+        git config user.name "babar-raza"
+        git config user.email "babar.raza@aspose.com"
 
     - name: Commit changes
       run: |
