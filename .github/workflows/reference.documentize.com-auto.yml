@@ -24,7 +24,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y mono-complete unzip python3-pip
+        sudo apt-get install -y unzip python3-pip
         python3 -m pip install --upgrade pip
         python3 -m pip install beautifulsoup4
 
@@ -41,11 +41,11 @@ jobs:
         mkdir -p temp_folder/docfx_input
         unzip -o "${{ steps.find_zip.outputs.zip_file }}" -d temp_folder
 
-    - name: Download and extract docfx
+    - name: Download and extract DocFX for Linux
       run: |
         wget https://github.com/dotnet/docfx/releases/download/v2.77.0/docfx-linux-x64-v2.77.0.zip -O docfx.zip
-        unzip docfx.zip -d temp_folder/docfx_input
-        chmod +x temp_folder/docfx_input/docfx
+        unzip docfx.zip -d temp_folder/docfx_input/docfx
+        chmod +x temp_folder/docfx_input/docfx/docfx
 
     - name: Copy documentize.dll and documentize.xml
       run: |
@@ -70,10 +70,10 @@ jobs:
         }
         EOF
 
-    - name: Run docfx
+    - name: Run DocFX
       working-directory: temp_folder/docfx_input
       run: |
-        docfx
+        ../docfx/docfx/docfx metadata
 
     - name: Run Python script
       run: |
