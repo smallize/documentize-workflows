@@ -43,7 +43,7 @@ jobs:
 
     - name: Download and extract docfx
       run: |
-        wget https://github.com/dotnet/docfx/releases/download/v2.77.0/docfx-win-x64-v2.77.0.zip -O docfx.zip
+        wget https://github.com/dotnet/docfx/releases/download/v2.77.0/docfx-linux-x64-v2.77.0.zip -O docfx.zip
         unzip docfx.zip -d temp_folder/docfx_input
         chmod +x temp_folder/docfx_input/docfx.exe
 
@@ -73,7 +73,7 @@ jobs:
     - name: Run docfx
       working-directory: temp_folder/docfx_input
       run: |
-        mono docfx.exe
+        docfx
 
     - name: Run Python script
       run: |
