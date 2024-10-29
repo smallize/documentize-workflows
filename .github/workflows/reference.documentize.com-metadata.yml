@@ -1,13 +1,7 @@
-name: reference.documentize.com-extract
+name: reference.documentize.com-metadata
 
 on:
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment'
-        type: environment
-        default: staging
-        required: true
 
 jobs:
   deploy:
@@ -19,7 +13,6 @@ jobs:
         repository: smallize/documentize
         token: ${{ secrets.REPO_TOKEN }}
         fetch-depth: 0
-        submodules: true
 
     - name: Install dependencies
       run: |
@@ -88,7 +81,7 @@ jobs:
     - name: Commit changes
       run: |
         git add content/reference.documentize.com/en/
-        git commit -m "Update API documentation" || echo "No changes to commit"
+        git commit -m "Updated API documentation" || echo "No changes to commit"
 
     - name: Push changes
       run: |
