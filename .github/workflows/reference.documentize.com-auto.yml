@@ -23,7 +23,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        choco install python --pre --no-progress
+        choco install python --pre 
         python -m pip install --upgrade pip
         python -m pip install beautifulsoup4
 
@@ -43,45 +43,29 @@ jobs:
 
     - name: Extract the latest zip file and prepare docfx_input
       run: |
-        mkdir temp_folder/docfx_input
+        mkdir temp_folder\docfx_input
         tar -xf "${{ steps.find_zip.outputs.zip_file }}" -C temp_folder
         # Copy the necessary DLL and XML files to docfx_input
-        copy temp_folder\\lib\\*.dll temp_folder\\docfx_input\\
-        copy temp_folder\\lib\\*.xml temp_folder\\docfx_input\\
+        copy temp_folder\lib\*.dll temp_folder\docfx_input\
+        copy temp_folder\lib\*.xml temp_folder\docfx_input\
 
-    - name: Download and extract DocFX into docfx_input
+    - name: Download and extract DocFX
       run: |
-        curl -L -o docfx.zip https://github.com/dotnet/docfx/releases/download/v2.77.0/docfx-osx-x64-v2.77.0.zip
-        tar -xf docfx.zip -C temp_folder/docfx_input
-
-    - name: Create docfx.json
-      run: |
-        @echo off
-        echo { > temp_folder/docfx_input/docfx.json
-        echo   "metadata": [ >> temp_folder/docfx_input/docfx.json
-        echo     { >> temp_folder/docfx_input/docfx.json
-        echo       "src": [ >> temp_folder/docfx_input/docfx.json
-        echo         { "files": ["*.dll"] } >> temp_folder/docfx_input/docfx.json
-        echo       ], >> temp_folder/docfx_input/docfx.json
-        echo       "dest": "api", >> temp_folder/docfx_input/docfx.json
-        echo       "outputFormat": "markdown" >> temp_folder/docfx_input/docfx.json
-        echo     } >> temp_folder/docfx_input/docfx.json
-        echo   ] >> temp_folder/docfx_input/docfx.json
-        echo } >> temp_folder/docfx_input/docfx.json
+        curl -L -o docfx.zip https://github.com/dotnet/docfx/releases/download/v2.77.0/docfx.zip
+        tar -xf docfx.zip -C temp_folder\docfx_input
 
     - name: Run DocFX
-      working-directory: temp_folder/docfx_input
+      working-directory: temp_folder\docfx_input
       run: |
-        .\\docfx metadata --logLevel Warning || echo "DocFX failed with exit code %ERRORLEVEL%"
+        .\docfx metadata --logLevel Warning || echo "DocFX failed with exit code %ERRORLEVEL%"
 
     - name: Run Python script
       run: |
-        python scripts\\postprocessor.py temp_folder\\docfx_input\\api
+        python scripts\postprocessor.py temp_folder\docfx_input\api
 
     - name: Copy files
       run: |
-        mkdir content\\reference.documentize.com\\en\\
-        xcopy /s /e temp_folder\\docfx_input\\api\\* content\\reference.documentize.com\\en\\
+        xcopy /s /e temp_folder\docfx_input\api\* content\reference.documentize.com\en\
 
     - name: Clean up
       run: |
