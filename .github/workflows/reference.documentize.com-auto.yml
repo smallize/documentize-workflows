@@ -43,7 +43,7 @@ jobs:
 
     - name: Download and extract docfx
       run: |
-        wget https://github.com/dotnet/docfx/releases/download/v2.59.3/docfx.zip -O docfx.zip
+        wget https://github.com/dotnet/docfx/releases/download/v2.77.0/docfx-win-x64-v2.77.0.zip -O docfx.zip
         unzip docfx.zip -d temp_folder/docfx_input
         chmod +x temp_folder/docfx_input/docfx.exe
 
@@ -87,20 +87,6 @@ jobs:
     - name: Clean up
       run: |
         rm -rf temp_folder
-
-    - name: Configure git
-      run: |
-        git config user.name "babar-raza"
-        git config user.email "babar.raza@aspose.com"
-
-    - name: Commit changes
-      run: |
-        git add content/reference.documentize.com/en/
-        git commit -m "Update API documentation" || echo "No changes to commit"
-
-    - name: Push changes
-      run: |
-        git push origin HEAD
 
     - name: Setup Hugo
       uses: peaceiris/actions-hugo@v2
