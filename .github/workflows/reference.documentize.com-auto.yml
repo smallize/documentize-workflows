@@ -70,13 +70,15 @@ jobs:
     - name: Copy files to Hugo content
       run: |
         # Ensure the target directory is empty
-        if exist content\reference.documentize.com\en\ (rmdir /s /q content\reference.documentize.com\en\)
-        mkdir content\reference.documentize.com\en\
+        if (Test-Path -Path content\reference.documentize.com\en\) {
+            Remove-Item -Recurse -Force content\reference.documentize.com\en\
+        }
+        New-Item -ItemType Directory -Force -Path content\reference.documentize.com\en\
         xcopy /s /e /y temp_folder\docfx_input\api\* content\reference.documentize.com\en\
 
     - name: Clean up
       run: |
-        rmdir /s /q temp_folder
+        Remove-Item -Recurse -Force temp_folder
 
     - name: Setup Hugo
       uses: peaceiris/actions-hugo@v2
@@ -87,11 +89,12 @@ jobs:
     - name: Determine Base URL
       id: base-url
       run: |
-        if "%GITHUB_EVENT_INPUTS_ENVIRONMENT%" == "production" (
+        if ("%GITHUB_EVENT_INPUTS_ENVIRONMENT%" -eq "production") {
           echo url=https://reference.documentize.com >> $GITHUB_OUTPUT
-        ) else (
+        }
+        else {
           echo url=https://reference-qa.documentize.com >> $GITHUB_OUTPUT
-        )
+        }
 
     - name: Build
       run: hugo --config "configs/reference.documentize.com.toml","configs/common.documentize.com.toml" -b "${{ steps.base-url.outputs.url }}" --cleanDestinationDir --minify --templateMetrics --templateMetricsHints --enableGitInfo
