@@ -73,7 +73,7 @@ jobs:
     - name: Run DocFX
       working-directory: temp_folder/docfx_input
       run: |
-        ../docfx/docfx/docfx metadata
+        ../docfx/docfx metadata
 
     - name: Run Python script
       run: |
