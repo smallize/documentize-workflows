@@ -28,6 +28,12 @@ jobs:
         python3 -m pip install --upgrade pip
         python3 -m pip install beautifulsoup4
 
+    - name: Install .NET SDK 8.0
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+        include-prerelease: true
+
     - name: Find latest zip file
       id: find_zip
       shell: bash
@@ -47,7 +53,6 @@ jobs:
     - name: Download and extract DocFX into docfx_input
       run: |
         wget https://github.com/dotnet/docfx/releases/download/v2.77.0/docfx-linux-x64-v2.77.0.zip -O docfx.zip
-        # Extract docfx into the same directory as documentize.dll and docfx.json
         unzip -o -j docfx.zip -d temp_folder/docfx_input
         chmod +x temp_folder/docfx_input/docfx
 
