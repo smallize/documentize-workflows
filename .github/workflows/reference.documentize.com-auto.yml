@@ -23,7 +23,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        choco install python --pre 
+        choco install python --pre --no-progress
         python -m pip install --upgrade pip
         python -m pip install beautifulsoup4
 
@@ -54,6 +54,10 @@ jobs:
         curl -L -o docfx.zip https://github.com/dotnet/docfx/releases/download/v2.77.0/docfx-win-x64-v2.77.0.zip
         tar -xf docfx.zip -C temp_folder\docfx_input
 
+    - name: Copy docfx.json to docfx_input
+      run: |
+        copy docfx.json temp_folder\docfx_input\
+
     - name: Run DocFX
       working-directory: temp_folder\docfx_input
       run: |
@@ -63,9 +67,12 @@ jobs:
       run: |
         python scripts\postprocessor.py temp_folder\docfx_input\api
 
-    - name: Copy files
+    - name: Copy files to Hugo content
       run: |
-        xcopy /s /e temp_folder\docfx_input\api\* content\reference.documentize.com\en\
+        # Ensure the target directory is empty
+        if exist content\reference.documentize.com\en\ (rmdir /s /q content\reference.documentize.com\en\)
+        mkdir content\reference.documentize.com\en\
+        xcopy /s /e /y temp_folder\docfx_input\api\* content\reference.documentize.com\en\
 
     - name: Clean up
       run: |
