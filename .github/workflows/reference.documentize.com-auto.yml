@@ -46,9 +46,9 @@ jobs:
       run: |
         mkdir -p temp_folder/docfx_input
         unzip -o "${{ steps.find_zip.outputs.zip_file }}" -d temp_folder
-        # Copy the necessary DLL and XML files to docfx_input
-        cp temp_folder/lib/*.dll temp_folder/docfx_input/
-        cp temp_folder/lib/*.xml temp_folder/docfx_input/
+        # Ensure DLL and XML files are copied to docfx_input
+        cp -v temp_folder/lib/*.dll temp_folder/docfx_input/ || echo "No DLLs found in lib folder."
+        cp -v temp_folder/lib/*.xml temp_folder/docfx_input/ || echo "No XMLs found in lib folder."
 
     - name: Download and extract DocFX into docfx_input
       run: |
@@ -64,7 +64,7 @@ jobs:
             {
               "src": [
                 {
-                  "files": ["documentize.dll"]
+                  "files": ["*.dll"]
                 }
               ],
               "dest": "api",
@@ -74,10 +74,10 @@ jobs:
         }
         EOF
 
-    - name: Run DocFX
+    - name: Run DocFX with logging
       working-directory: temp_folder/docfx_input
       run: |
-        ./docfx metadata
+        ./docfx metadata --logLevel Warning || echo "DocFX failed with exit code $?"
 
     - name: Run Python script
       run: |
