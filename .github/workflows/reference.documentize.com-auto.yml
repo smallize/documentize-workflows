@@ -1,4 +1,4 @@
-name: reference.documentize.com-auto
+name: reference.documentize.com-extract
 
 on:
   workflow_dispatch:
@@ -80,27 +80,16 @@ jobs:
       run: |
         Remove-Item -Recurse -Force temp_folder
 
-    - name: Setup Hugo
-      uses: peaceiris/actions-hugo@v2
-      with:
-        hugo-version: '0.135.0' # Specify a recent stable version
-        extended: true
-
-    - name: Determine Base URL
-      id: base-url
+    - name: Configure git
       run: |
-        if ("%GITHUB_EVENT_INPUTS_ENVIRONMENT%" -eq "production") {
-          echo url=https://reference.documentize.com >> $GITHUB_OUTPUT
-        }
-        else {
-          echo url=https://reference-qa.documentize.com >> $GITHUB_OUTPUT
-        }
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
 
-    - name: Build
-      run: hugo --config "configs/reference.documentize.com.toml","configs/common.documentize.com.toml" -b "${{ steps.base-url.outputs.url }}" --cleanDestinationDir --minify --templateMetrics --templateMetricsHints --enableGitInfo
+    - name: Commit changes
+      run: |
+        git add content/reference.documentize.com/en/
+        git commit -m "Update API documentation" || echo "No changes to commit"
 
-    - name: Deploy
-      run: hugo deploy --config "configs/reference.documentize.com.toml" --maxDeletes=-1 --target "${{ github.event.inputs.environment }}" --invalidateCDN --force
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS }}
+    - name: Push changes
+      run: |
+        git push origin HEAD
