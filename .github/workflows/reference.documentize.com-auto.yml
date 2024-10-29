@@ -83,7 +83,7 @@ jobs:
     - name: Setup Hugo
       uses: peaceiris/actions-hugo@v2
       with:
-        hugo-version: '0.136.0' # Specify a recent stable version
+        hugo-version: '0.135.0' # Specify a recent stable version
         extended: true
 
     - name: Determine Base URL
