@@ -36,21 +36,20 @@ jobs:
         echo "Latest zip file is $latest_zip"
         echo "zip_file=$latest_zip" >> $GITHUB_OUTPUT
 
-    - name: Extract the latest zip file
+    - name: Extract the latest zip file and prepare docfx_input
       run: |
         mkdir -p temp_folder/docfx_input
         unzip -o "${{ steps.find_zip.outputs.zip_file }}" -d temp_folder
-
-    - name: Download and extract DocFX for Linux
-      run: |
-        wget https://github.com/dotnet/docfx/releases/download/v2.77.0/docfx-linux-x64-v2.77.0.zip -O docfx.zip
-        unzip docfx.zip -d temp_folder/docfx_input/docfx
-        chmod +x temp_folder/docfx_input/docfx/docfx
-
-    - name: Copy documentize.dll and documentize.xml
-      run: |
+        # Copy the necessary DLL and XML files to docfx_input
         cp temp_folder/lib/*.dll temp_folder/docfx_input/
         cp temp_folder/lib/*.xml temp_folder/docfx_input/
+
+    - name: Download and extract DocFX into docfx_input
+      run: |
+        wget https://github.com/dotnet/docfx/releases/download/v2.77.0/docfx-linux-x64-v2.77.0.zip -O docfx.zip
+        # Extract docfx into the same directory as documentize.dll and docfx.json
+        unzip -o -j docfx.zip -d temp_folder/docfx_input
+        chmod +x temp_folder/docfx_input/docfx
 
     - name: Create docfx.json
       run: |
@@ -73,7 +72,7 @@ jobs:
     - name: Run DocFX
       working-directory: temp_folder/docfx_input
       run: |
-        ../docfx/docfx metadata
+        ./docfx metadata
 
     - name: Run Python script
       run: |
