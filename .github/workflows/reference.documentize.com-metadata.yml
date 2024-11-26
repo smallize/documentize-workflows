@@ -94,7 +94,22 @@ jobs:
       run: |
         echo "Running DocFX metadata command"
         .\docfx metadata --logLevel Warning || echo "DocFX failed with exit code %ERRORLEVEL%"
-        dir temp_folder\docfx_input\api
+        echo "Listing contents of docfx_input directory after running DocFX"
+        dir temp_folder\docfx_input
+
+    - name: Verify API folder
+      run: |
+        echo "Verifying existence of 'api' or 'API' folder in docfx_input"
+        if (Test-Path -Path temp_folder\docfx_input\api) {
+          echo "'api' folder found in expected location"
+          dir temp_folder\docfx_input\api
+        } elseif (Test-Path -Path temp_folder\docfx_input\API) {
+          echo "'API' folder found in expected location"
+          dir temp_folder\docfx_input\API
+        } else {
+          echo "Error: No 'api' or 'API' folder found after running DocFX"
+          exit 1
+        }
 
     - name: Run Python script
       run: |
