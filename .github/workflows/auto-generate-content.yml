@@ -1,9 +1,7 @@
-name: Content Update with ChatGPT
+name: auto-generate-content
 
 on:
-  push:
-    paths:
-      - 'content/reference.documentize.com/en/**'
+  workflow_dispatch:
 
 jobs:
   generate_content:
