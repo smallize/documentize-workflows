@@ -30,118 +30,59 @@ jobs:
       id: find_zip
       shell: bash
       run: |
-        echo "Looking for the latest zip file in 'static/packages/'"
-        ls static/packages/Documentize.*.zip
         latest_zip=$(ls static/packages/Documentize.*.zip | sort -V | tail -n1)
         echo "Latest zip file is $latest_zip"
         echo "zip_file=$latest_zip" >> $GITHUB_OUTPUT
 
-    - name: Extract the latest zip file
+    - name: Extract the latest zip file and prepare docfx_input
       run: |
-        echo "Extracting the latest zip file"
-        mkdir temp_folder
-        tar -xf "${{ steps.find_zip.outputs.zip_file }}" -C temp_folder
-        dir temp_folder
-
-    - name: Find the correct DLL and XML set
-      id: find_dll_xml
-      shell: bash
-      run: |
-        echo "Searching for .dll and .xml files in the extracted archive"
-        dll_file=""
-        xml_file=""
-        for dir in $(find temp_folder -type d); do
-          if [ -f "$dir/Documentize.dll" ] && [ -f "$dir/Documentize.xml" ]; then
-            dll_file="$dir/Documentize.dll"
-            xml_file="$dir/Documentize.xml"
-            break
-          fi
-        done
-
-        if [ -z "$dll_file" ] || [ -z "$xml_file" ]; then
-          echo "Error: No matching .dll and .xml files found in the same directory"
-          exit 1
-        fi
-
-        echo "DLL file: $dll_file"
-        echo "XML file: $xml_file"
-        echo "dll_file=$dll_file" >> $GITHUB_OUTPUT
-        echo "xml_file=$xml_file" >> $GITHUB_OUTPUT
-
-    - name: Prepare docfx_input
-      run: |
-        echo "Preparing docfx_input directory"
         mkdir temp_folder\docfx_input
-        copy "${{ steps.find_dll_xml.outputs.dll_file }}" temp_folder\docfx_input\
-        copy "${{ steps.find_dll_xml.outputs.xml_file }}" temp_folder\docfx_input\
-        dir temp_folder\docfx_input
+        tar -xf "${{ steps.find_zip.outputs.zip_file }}" -C temp_folder
+        # Copy the necessary DLL and XML files to docfx_input
+        copy temp_folder\lib\*.dll temp_folder\docfx_input\
+        copy temp_folder\lib\*.xml temp_folder\docfx_input\
 
     - name: Download and extract DocFX
       run: |
-        echo "Downloading and extracting DocFX"
         curl -L -o docfx.zip https://github.com/dotnet/docfx/releases/download/v2.77.0/docfx-win-x64-v2.77.0.zip
         tar -xf docfx.zip -C temp_folder\docfx_input
-        dir temp_folder\docfx_input
 
     - name: Copy docfx.json to docfx_input
       run: |
-        echo "Copying docfx.json to docfx_input"
         copy docfx.json temp_folder\docfx_input\
-        dir temp_folder\docfx_input
 
     - name: Run DocFX
       working-directory: temp_folder\docfx_input
       run: |
-        echo "Running DocFX metadata command"
         .\docfx metadata --logLevel Warning || echo "DocFX failed with exit code %ERRORLEVEL%"
-        echo "Listing docfx_input directory:"
-        dir temp_folder\docfx_input
-        echo "Checking for api or API folder"
-        if (Test-Path -Path temp_folder\docfx_input\api) {
-            echo "Found api folder"
-            dir temp_folder\docfx_input\api
-        } elseif (Test-Path -Path temp_folder\docfx_input\API) {
-            echo "Found API folder"
-            dir temp_folder\docfx_input\API
-        } else {
-            echo "Error: No API output directory found"
-            exit 1
-        }
 
     - name: Run Python script
       run: |
-        echo "Running postprocessor Python script"
         python scripts\postprocessor.py temp_folder\docfx_input\api
 
     - name: Copy files to Hugo content
       run: |
-        echo "Copying files to Hugo content"
+        # Ensure the target directory is empty
         if (Test-Path -Path content\reference.documentize.com\en\) {
-            echo "Cleaning existing content directory"
             Remove-Item -Recurse -Force content\reference.documentize.com\en\
         }
         New-Item -ItemType Directory -Force -Path content\reference.documentize.com\en\
         xcopy /s /e /y temp_folder\docfx_input\api\* content\reference.documentize.com\en\
-        dir content\reference.documentize.com\en\
 
     - name: Clean up
       run: |
-        echo "Cleaning up temporary files"
         Remove-Item -Recurse -Force temp_folder
 
     - name: Configure git
       run: |
-        echo "Configuring Git user"
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
 
     - name: Commit changes
       run: |
-        echo "Adding and committing changes"
         git add content/reference.documentize.com/en/
         git commit -m "Updated API documentation" || echo "No changes to commit"
 
     - name: Push changes
       run: |
-        echo "Pushing changes to repository"
         git push origin HEAD
