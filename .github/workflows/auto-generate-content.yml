@@ -1,19 +1,26 @@
-name: auto-generate-content-ai
+name: Content Update with ChatGPT
 
 on:
-  workflow_dispatch:
+  push:
+    paths:
+      - 'content/reference.documentize.com/en/**'
 
 jobs:
   generate_content:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v3
+    - name: Checkout theme repo
+      uses: actions/checkout@v4
+      with:
+          repository: smallize/documentize
+          token: ${{ secrets.REPO_TOKEN }}
+          fetch-depth: 0 
+          submodules: true
 
     - name: Install Required Tools
       run: |
-        sudo apt-get install jq
+        sudo apt-get install -y jq
 
     - name: Detect Newly Added Files
       id: detect_changes
@@ -38,10 +45,25 @@ jobs:
     - name: Provide Existing Features to AI
       id: provide_existing_features
       run: |
-        # Gather existing feature names from the products and docs sections
-        EXISTING_FEATURES=$(find content/products.documentize.com/en/ -type d -maxdepth 1 -exec basename {} \;)
+        # Initialize variable
+        EXISTING_FEATURES=""
+
+        # Check if the products directory exists
+        if [ -d "content/products.documentize.com/en/" ]; then
+          # Gather existing feature names from the products section
+          FEATURES_PRODUCTS=$(find content/products.documentize.com/en/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+          EXISTING_FEATURES="$EXISTING_FEATURES $FEATURES_PRODUCTS"
+        fi
+
+        # Check if the docs directory exists
+        if [ -d "content/docs.documentize.com/en/developers-guide/" ]; then
+          # Gather existing feature names from the docs section
+          FEATURES_DOCS=$(find content/docs.documentize.com/en/developers-guide/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+          EXISTING_FEATURES="$EXISTING_FEATURES $FEATURES_DOCS"
+        fi
+
         echo "Existing feature names: $EXISTING_FEATURES"
-        echo "existing_features=${EXISTING_FEATURES}" >> $GITHUB_ENV
+        echo "existing_features=$EXISTING_FEATURES" >> $GITHUB_ENV
 
     - name: Generate Feature Name via AI
       id: generate_feature_name
@@ -49,11 +71,11 @@ jobs:
         AI_RESPONSE=$(curl -s -X POST https://api.openai.com/v1/completions \
           -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
           -H "Content-Type: application/json" \
-          -d '{
-                "model": "gpt-4o-mini",
-                "prompt": "Given the following file content:\n\n${{ env.collected_content }}\n\nAnd the existing features:\n${{ env.existing_features }}\n\nSuggest a concise, descriptive feature name for the newly added functionality:",
-                "max_tokens": 50
-              }')
+          -d "{
+                \"model\": \"gpt-4o-mini\",
+                \"prompt\": \"Given the following file content:\\n\\n${{ env.collected_content }}\\n\\nAnd the existing features:\\n${{ env.existing_features }}\\n\\nSuggest a concise, descriptive feature name for the newly added functionality:\",
+                \"max_tokens\": 50
+              }")
         FEATURE_NAME=$(echo "$AI_RESPONSE" | jq -r '.choices[0].text' | tr -d '\n' | sed 's/[^a-zA-Z0-9_-]//g')
         echo "Generated feature name: $FEATURE_NAME"
         echo "feature_name=$FEATURE_NAME" >> $GITHUB_ENV
@@ -61,6 +83,11 @@ jobs:
     - name: Generate Consolidated Content
       id: generate_content
       run: |
+        # Ensure templates exist
+        mkdir -p content/releases.documentize.com/en/releases-notes/
+        mkdir -p content/products.documentize.com/en/html-converter/
+        mkdir -p content/docs.documentize.com/en/developers-guide/sample-guide/
+
         TEMPLATE_RELEASE=$(cat content/releases.documentize.com/en/releases-notes/24.8.md)
         TEMPLATE_PRODUCT=$(cat content/products.documentize.com/en/html-converter/_index.md)
         TEMPLATE_DOC=$(cat content/docs.documentize.com/en/developers-guide/sample-guide/_index.md)
@@ -69,11 +96,11 @@ jobs:
         RESPONSE=$(curl -s -X POST https://api.openai.com/v1/completions \
           -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
           -H "Content-Type: application/json" \
-          -d '{
-                "model": "gpt-4o-mini",
-                "prompt": "Analyze the following file content:\n\n${{ env.collected_content }}\n\nBased on the suggested feature name \"${{ env.feature_name }}\", generate:\n1. A release note using this template:\n${TEMPLATE_RELEASE}\n2. A product page using this template:\n${TEMPLATE_PRODUCT}\n3. A documentation page using this template:\n${TEMPLATE_DOC}",
-                "max_tokens": 2048
-              }')
+          -d "{
+                \"model\": \"gpt-4o-mini\",
+                \"prompt\": \"Analyze the following file content:\\n\\n${{ env.collected_content }}\\n\\nBased on the suggested feature name \\\"${{ env.feature_name }}\\\", generate:\\n1. A release note using this template:\\n${TEMPLATE_RELEASE}\\n2. A product page using this template:\\n${TEMPLATE_PRODUCT}\\n3. A documentation page using this template:\\n${TEMPLATE_DOC}\",
+                \"max_tokens\": 2048
+              }")
 
         # Extract sections from the API response
         RELEASE_NOTES=$(echo "$RESPONSE" | jq -r '.choices[0].text' | sed -n '/Release Notes:/,/Product Page:/p' | sed '/Product Page:/d')
@@ -81,8 +108,13 @@ jobs:
         DOC_PAGE=$(echo "$RESPONSE" | jq -r '.choices[0].text' | sed -n '/Documentation Page:/,$p')
 
         # Write outputs to respective files
+        mkdir -p content/releases.documentize.com/en/releases-notes/
         echo "$RELEASE_NOTES" > content/releases.documentize.com/en/releases-notes/24.11.md
+
+        mkdir -p content/products.documentize.com/en/${{ env.feature_name }}/
         echo "$PRODUCT_PAGE" > content/products.documentize.com/en/${{ env.feature_name }}/_index.md
+
+        mkdir -p content/docs.documentize.com/en/developers-guide/${{ env.feature_name }}/
         echo "$DOC_PAGE" > content/docs.documentize.com/en/developers-guide/${{ env.feature_name }}/_index.md
 
     - name: Commit Consolidated Content
