@@ -34,13 +34,41 @@ jobs:
         echo "Latest zip file is $latest_zip"
         echo "zip_file=$latest_zip" >> $GITHUB_OUTPUT
 
-    - name: Extract the latest zip file and prepare docfx_input
+    - name: Extract the latest zip file
+      run: |
+        mkdir temp_folder
+        tar -xf "${{ steps.find_zip.outputs.zip_file }}" -C temp_folder
+
+    - name: Find the correct DLL and XML set
+      id: find_dll_xml
+      shell: bash
+      run: |
+        echo "Searching for .dll and .xml files in the extracted archive"
+        dll_file=""
+        xml_file=""
+        for dir in $(find temp_folder -type d); do
+          if [ -f "$dir/Documentize.dll" ] && [ -f "$dir/Documentize.xml" ]; then
+            dll_file="$dir/Documentize.dll"
+            xml_file="$dir/Documentize.xml"
+            break
+          fi
+        done
+
+        if [ -z "$dll_file" ] || [ -z "$xml_file" ]; then
+          echo "Error: No matching .dll and .xml files found in the same directory"
+          exit 1
+        fi
+
+        echo "DLL file: $dll_file"
+        echo "XML file: $xml_file"
+        echo "dll_file=$dll_file" >> $GITHUB_OUTPUT
+        echo "xml_file=$xml_file" >> $GITHUB_OUTPUT
+
+    - name: Prepare docfx_input
       run: |
         mkdir temp_folder\docfx_input
-        tar -xf "${{ steps.find_zip.outputs.zip_file }}" -C temp_folder
-        # Copy the necessary DLL and XML files to docfx_input
-        copy temp_folder\lib\*.dll temp_folder\docfx_input\
-        copy temp_folder\lib\*.xml temp_folder\docfx_input\
+        copy "${{ steps.find_dll_xml.outputs.dll_file }}" temp_folder\docfx_input\
+        copy "${{ steps.find_dll_xml.outputs.xml_file }}" temp_folder\docfx_input\
 
     - name: Download and extract DocFX
       run: |
