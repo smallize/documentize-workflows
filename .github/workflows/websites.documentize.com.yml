@@ -15,7 +15,7 @@ jobs:
     - name: Setup Hugo
       uses: peaceiris/actions-hugo@v2
       with:
-          hugo-version: 'latest'
+          hugo-version: '0.135.0'
           extended: true
     - name: Build 
       run: hugo --config "configs/websites.documentize.com.toml","configs/common.documentize.com.toml" -b "https://websites.documentize.com" --cleanDestinationDir --minify --templateMetrics --templateMetricsHints --enableGitInfo
