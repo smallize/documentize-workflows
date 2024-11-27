@@ -11,10 +11,10 @@ jobs:
     - name: Checkout theme repo
       uses: actions/checkout@v4
       with:
-          repository: smallize/documentize
-          token: ${{ secrets.REPO_TOKEN }}
-          fetch-depth: 0 
-          submodules: true
+        repository: smallize/documentize
+        token: ${{ secrets.REPO_TOKEN }}
+        fetch-depth: 0 
+        submodules: true
 
     - name: Install Required Tools
       run: |
@@ -28,7 +28,10 @@ jobs:
         git diff --name-status $PREVIOUS_COMMIT $LATEST_COMMIT | grep '^A' | awk '{print $2}' > added_files.txt
         echo "Added files detected:"
         cat added_files.txt
-        echo "added_files=$(cat added_files.txt)" >> $GITHUB_ENV
+        # Use <<EOF syntax to handle multi-line values
+        echo "added_files<<EOF" >> $GITHUB_ENV
+        cat added_files.txt >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
 
     - name: Collect File Contents
       id: collect_files
@@ -38,7 +41,10 @@ jobs:
           FILE_CONTENT=$(cat "$file")
           CONTENT="${CONTENT}\n\n--- FILE: ${file} ---\n\n${FILE_CONTENT}"
         done < added_files.txt
-        echo "collected_content=${CONTENT}" >> $GITHUB_ENV
+        # Use <<EOF syntax to handle multi-line values
+        echo "collected_content<<EOF" >> $GITHUB_ENV
+        echo -e "${CONTENT}" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
 
     - name: Provide Existing Features to AI
       id: provide_existing_features
@@ -61,19 +67,28 @@ jobs:
         fi
 
         echo "Existing feature names: $EXISTING_FEATURES"
-        echo "existing_features=$EXISTING_FEATURES" >> $GITHUB_ENV
+        # Use <<EOF syntax to handle multi-line values
+        echo "existing_features<<EOF" >> $GITHUB_ENV
+        echo "${EXISTING_FEATURES}" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
 
     - name: Generate Feature Name via AI
       id: generate_feature_name
       run: |
+        # Prepare JSON data
+        JSON_DATA=$(jq -n \
+          --arg model "gpt-4o-mini" \
+          --arg prompt "Given the following file content:\n\n${{ env.collected_content }}\n\nAnd the existing features:\n${{ env.existing_features }}\n\nSuggest a concise, descriptive feature name for the newly added functionality:" \
+          --arg max_tokens "50" \
+          '{model: $model, prompt: $prompt, max_tokens: ($max_tokens|tonumber)}')
+
+        # Make API call
         AI_RESPONSE=$(curl -s -X POST https://api.openai.com/v1/completions \
           -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
           -H "Content-Type: application/json" \
-          -d "{
-                \"model\": \"gpt-4o-mini\",
-                \"prompt\": \"Given the following file content:\\n\\n${{ env.collected_content }}\\n\\nAnd the existing features:\\n${{ env.existing_features }}\\n\\nSuggest a concise, descriptive feature name for the newly added functionality:\",
-                \"max_tokens\": 50
-              }")
+          -d "$JSON_DATA")
+
+        # Extract feature name and sanitize it
         FEATURE_NAME=$(echo "$AI_RESPONSE" | jq -r '.choices[0].text' | tr -d '\n' | sed 's/[^a-zA-Z0-9_-]//g')
         echo "Generated feature name: $FEATURE_NAME"
         echo "feature_name=$FEATURE_NAME" >> $GITHUB_ENV
@@ -90,20 +105,24 @@ jobs:
         TEMPLATE_PRODUCT=$(cat content/products.documentize.com/en/html-converter/_index.md)
         TEMPLATE_DOC=$(cat content/docs.documentize.com/en/developers-guide/sample-guide/_index.md)
 
-        # Send all collected file content and the suggested feature name to the API
+        # Prepare JSON data
+        JSON_DATA=$(jq -n \
+          --arg model "gpt-4o-mini" \
+          --arg prompt "Analyze the following file content:\n\n${{ env.collected_content }}\n\nBased on the suggested feature name \"${{ env.feature_name }}\", generate:\n1. A release note using this template:\n${TEMPLATE_RELEASE}\n2. A product page using this template:\n${TEMPLATE_PRODUCT}\n3. A documentation page using this template:\n${TEMPLATE_DOC}" \
+          --arg max_tokens "2048" \
+          '{model: $model, prompt: $prompt, max_tokens: ($max_tokens|tonumber)}')
+
+        # Make API call
         RESPONSE=$(curl -s -X POST https://api.openai.com/v1/completions \
           -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
           -H "Content-Type: application/json" \
-          -d "{
-                \"model\": \"gpt-4o-mini\",
-                \"prompt\": \"Analyze the following file content:\\n\\n${{ env.collected_content }}\\n\\nBased on the suggested feature name \\\"${{ env.feature_name }}\\\", generate:\\n1. A release note using this template:\\n${TEMPLATE_RELEASE}\\n2. A product page using this template:\\n${TEMPLATE_PRODUCT}\\n3. A documentation page using this template:\\n${TEMPLATE_DOC}\",
-                \"max_tokens\": 2048
-              }")
+          -d "$JSON_DATA")
 
         # Extract sections from the API response
-        RELEASE_NOTES=$(echo "$RESPONSE" | jq -r '.choices[0].text' | sed -n '/Release Notes:/,/Product Page:/p' | sed '/Product Page:/d')
-        PRODUCT_PAGE=$(echo "$RESPONSE" | jq -r '.choices[0].text' | sed -n '/Product Page:/,/Documentation Page:/p' | sed '/Documentation Page:/d')
-        DOC_PAGE=$(echo "$RESPONSE" | jq -r '.choices[0].text' | sed -n '/Documentation Page:/,$p')
+        FULL_TEXT=$(echo "$RESPONSE" | jq -r '.choices[0].text')
+        RELEASE_NOTES=$(echo "$FULL_TEXT" | sed -n '/Release Notes:/,/Product Page:/p' | sed '/Product Page:/d')
+        PRODUCT_PAGE=$(echo "$FULL_TEXT" | sed -n '/Product Page:/,/Documentation Page:/p' | sed '/Documentation Page:/d')
+        DOC_PAGE=$(echo "$FULL_TEXT" | sed -n '/Documentation Page:/,$p')
 
         # Write outputs to respective files
         mkdir -p content/releases.documentize.com/en/releases-notes/
