@@ -110,11 +110,11 @@ jobs:
         COLLECTED_CONTENT=$(cat collected_content.txt)
         FEATURE_NAME=$(cat feature_name.txt)
 
-        mkdir -p documentize_repo/content/releases.documentize.com/en/releases-notes/
+        mkdir -p documentize_repo/content/releases.documentize.com/en/release-notes/
         mkdir -p documentize_repo/content/products.documentize.com/en/html-converter/
         mkdir -p documentize_repo/content/docs.documentize.com/en/developers-guide/sample-guide/
 
-        TEMPLATE_RELEASE=$(cat documentize_repo/content/releases.documentize.com/en/releases-notes/24.8.md)
+        TEMPLATE_RELEASE=$(cat documentize_repo/content/releases.documentize.com/en/release-notes/24.8.md)
         TEMPLATE_PRODUCT=$(cat documentize_repo/content/products.documentize.com/en/html-converter/_index.md)
         TEMPLATE_DOC=$(cat documentize_repo/content/docs.documentize.com/en/developers-guide/sample-guide/_index.md)
 
@@ -140,8 +140,8 @@ jobs:
           exit 1
         fi
 
-        mkdir -p documentize_repo/content/releases.documentize.com/en/releases-notes/
-        echo "$RELEASE_NOTES" > documentize_repo/content/releases.documentize.com/en/releases-notes/24.11.md
+        mkdir -p documentize_repo/content/releases.documentize.com/en/release-notes/
+        echo "$RELEASE_NOTES" > documentize_repo/content/releases.documentize.com/en/release-notes/24.11.md
 
         mkdir -p documentize_repo/content/products.documentize.com/en/$FEATURE_NAME/
         echo "$PRODUCT_PAGE" > documentize_repo/content/products.documentize.com/en/$FEATURE_NAME/_index.md
@@ -154,7 +154,7 @@ jobs:
         cd documentize_repo
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
-        git add content/releases.documentize.com/en/releases-notes/24.11.md
+        git add content/releases.documentize.com/en/release-notes/24.11.md
         git add content/products.documentize.com/en/$FEATURE_NAME/_index.md
         git add content/docs.documentize.com/en/developers-guide/$FEATURE_NAME/_index.md
         git commit -m "Generated consolidated content for feature: $FEATURE_NAME"
