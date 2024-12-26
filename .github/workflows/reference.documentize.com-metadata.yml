@@ -102,6 +102,9 @@ jobs:
         if (Test-Path -Path temp_folder) {
             Remove-Item -Recurse -Force temp_folder
         }
+        if (Test-Path -Path docfx.zip) {
+            Remove-Item -Force docfx.zip
+        }
 
     - name: Configure git
       run: |
