@@ -97,15 +97,6 @@ jobs:
         New-Item -ItemType Directory -Force -Path content\reference.documentize.com\en\
         xcopy /s /e /y temp_folder\docfx_input\api\* content\reference.documentize.com\en\
 
-    - name: Clean up temporary files
-      run: |
-        if (Test-Path -Path temp_folder) {
-            Remove-Item -Recurse -Force temp_folder
-        }
-        if (Test-Path -Path docfx.zip) {
-            Remove-Item -Force docfx.zip
-        }
-
     - name: Configure git
       run: |
         git config user.name "GitHub Actions"
