@@ -97,9 +97,11 @@ jobs:
         New-Item -ItemType Directory -Force -Path content\reference.documentize.com\en\
         xcopy /s /e /y temp_folder\docfx_input\api\* content\reference.documentize.com\en\
 
-    - name: Clean up
+    - name: Clean up temporary files
       run: |
-        Remove-Item -Recurse -Force temp_folder
+        if (Test-Path -Path temp_folder) {
+            Remove-Item -Recurse -Force temp_folder
+        }
 
     - name: Configure git
       run: |
@@ -114,9 +116,9 @@ jobs:
         $branch_name = "api-metadata-$short_date"
         git checkout -b $branch_name || git checkout $branch_name
         git pull origin $branch_name || echo "No remote branch to pull, creating a new one."
-        git add content/reference.documentize.com/en/
+        git add content/reference.documentize.com/en
         git commit -m "Updated API documentation" || echo "No changes to commit"
-        git push origin $branch_name || git push origin $branch_name --force
+        git push origin $branch_name
         echo "branch_name=$branch_name" >> $env:GITHUB_OUTPUT
 
     - name: Create Pull Request
