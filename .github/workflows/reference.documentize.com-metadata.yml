@@ -114,13 +114,3 @@ jobs:
         git commit -m "Updated API documentation" || echo "No changes to commit"
         git push origin $branch_name
         echo "branch_name=$branch_name" >> $env:GITHUB_OUTPUT
-
-    - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v4
-      with:
-        token: ${{ secrets.REPO_TOKEN }}
-        commit-message: "Updated API documentation"
-        branch: ${{ steps.commit_and_push.outputs.branch_name }}
-        base: main
-        title: "Update API Metadata"
-        body: "Automated update of API metadata and content formatting."
