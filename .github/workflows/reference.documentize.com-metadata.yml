@@ -30,7 +30,7 @@ jobs:
       id: find_zip
       shell: bash
       run: |
-        latest_zip=$(ls static/packages/Documentize.*.zip | sort -V | tail -n1)
+        latest_zip=$(ls packages/Documentize.*.zip | sort -V | tail -n1)
         echo "Latest zip file is $latest_zip"
         echo "zip_file=$latest_zip" >> $GITHUB_OUTPUT
 
