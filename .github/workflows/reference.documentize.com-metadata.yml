@@ -112,10 +112,11 @@ jobs:
       run: |
         $short_date = (Get-Date -Format "yyyy-MM-dd")
         $branch_name = "api-metadata-$short_date"
-        git checkout -b $branch_name
+        git checkout -b $branch_name || git checkout $branch_name
+        git pull origin $branch_name || echo "No remote branch to pull, creating a new one."
         git add content/reference.documentize.com/en/
         git commit -m "Updated API documentation" || echo "No changes to commit"
-        git push origin $branch_name
+        git push origin $branch_name || git push origin $branch_name --force
         echo "branch_name=$branch_name" >> $env:GITHUB_OUTPUT
 
     - name: Create Pull Request
@@ -127,4 +128,3 @@ jobs:
         base: main
         title: "Update API Metadata"
         body: "Automated update of API metadata and content formatting."
-
