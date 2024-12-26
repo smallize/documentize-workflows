@@ -106,11 +106,22 @@ jobs:
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
 
-    - name: Commit changes
+    - name: Commit changes and push to a new branch
+      id: commit_and_push
       run: |
+        short_date=$(date +%Y-%m-%d)
+        branch_name="api-metadata-$short_date"
+        git checkout -b $branch_name
         git add content/reference.documentize.com/en/
         git commit -m "Updated API documentation" || echo "No changes to commit"
+        git push origin $branch_name
+        echo "branch_name=$branch_name" >> $GITHUB_OUTPUT
 
-    - name: Push changes
-      run: |
-        git push origin HEAD
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v4
+      with:
+        token: ${{ secrets.REPO_TOKEN }}
+        commit-message: "Updated API documentation"
+        branch: ${{ steps.commit_and_push.outputs.branch_name }}
+        title: "Update API Metadata"
+        body: "Automated update of API metadata and content formatting."
