@@ -124,5 +124,7 @@ jobs:
         token: ${{ secrets.REPO_TOKEN }}
         commit-message: "Updated API documentation"
         branch: ${{ steps.commit_and_push.outputs.branch_name }}
+        base: main
         title: "Update API Metadata"
         body: "Automated update of API metadata and content formatting."
+
