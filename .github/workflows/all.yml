@@ -29,15 +29,15 @@ jobs:
             "https://api.github.com/repos/${{ github.repository }}/actions/workflows" > workflows.json
           cat workflows.json
 
-      - name: Trigger workflows (excluding reference.documentize.com-metadata.yml)
+      - name: Trigger workflows (excluding reference.documentize.com-metadata.yml and all.yml)
         env:
           REPO_TOKEN: ${{ secrets.REPO_TOKEN }}
           GITHUB_REPO: ${{ github.repository }}
           REF: ${{ github.ref }}
           TARGET_ENVIRONMENT: ${{ github.event.inputs.environment }}
         run: |
-          # Use jq to filter out the workflow with the specific filename
-          jq -r '.workflows[] | select(.path != "reference.documentize.com-metadata.yml") | .id' workflows.json | while read workflow_id; do
+          # Use jq to filter out the workflows with the specific filenames
+          jq -r '.workflows[] | select(.path != "reference.documentize.com-metadata.yml" and .path != "all.yml") | .id' workflows.json | while read workflow_id; do
             echo "Dispatching workflow ID: $workflow_id for environment: ${TARGET_ENVIRONMENT}"
             curl -s -X POST \
               -H "Authorization: token ${REPO_TOKEN}" \
