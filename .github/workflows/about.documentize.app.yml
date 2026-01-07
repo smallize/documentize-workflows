@@ -32,3 +32,9 @@ jobs:
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS }}
+    - name: Deploy to Ceph (production)
+      run: hugo deploy --config "configs/about.documentize.app.toml" --target "production_ceph" --force
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.CEPH_ABOUT_DOCUMENTIZE_APP_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.CEPH_ABOUT_DOCUMENTIZE_APP_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: us-east-1
