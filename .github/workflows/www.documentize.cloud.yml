@@ -1,6 +1,12 @@
 name: www.documentize.cloud
 on:
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment'
+        type: environment
+        default: staging
+        required: true
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -17,10 +23,18 @@ jobs:
       with:
           hugo-version: '0.135.0'
           extended: true
-    - name: Build 
-      run: hugo --config "configs/www.documentize.cloud.toml","configs/common.documentize.cloud.toml" -b "https://www.documentize.cloud" --cleanDestinationDir --minify --templateMetrics --templateMetricsHints --enableGitInfo
+    - name: Determine Base URL
+      id: base-url
+      run: |
+        if [ "${{ github.event.inputs.environment }}" = "production" ]; then
+          echo "::set-output name=url::https://www.documentize.cloud"
+        else
+          echo "::set-output name=url::https://www-qa.documentize.cloud"
+        fi
+    - name: Build
+      run: hugo --config "configs/www.documentize.cloud.toml","configs/common.documentize.cloud.toml" -b "${{ steps.base-url.outputs.url }}" --cleanDestinationDir --minify --templateMetrics --templateMetricsHints --enableGitInfo
     - name: Deploy
-      run: hugo deploy --config "configs/www.documentize.cloud.toml" --maxDeletes=-1 --target "production" --invalidateCDN --force
+      run: hugo deploy --config "configs/www.documentize.cloud.toml" --maxDeletes=-1 --target "${{ github.event.inputs.environment }}" --invalidateCDN --force
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS }}
