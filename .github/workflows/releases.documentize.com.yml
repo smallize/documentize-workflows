@@ -40,11 +40,22 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS }}
     - name: Deploy to Ceph (staging only)
       if: ${{ github.event.inputs.environment == 'staging' }}
-      run: hugo deploy --config "configs/releases.documentize.com.toml" --target "staging_ceph" --force
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.CEPH_RELEASES_QA_DOCUMENTIZE_COM_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.CEPH_RELEASES_QA_DOCUMENTIZE_COM_SECRET_ACCESS_KEY }}
         AWS_DEFAULT_REGION: us-east-1
+      run: |
+        echo "Deploying to Ceph staging..."
+        if hugo deploy --config "configs/releases.documentize.com.toml" --target "staging_ceph" --force; then
+          echo "Hugo deploy to Ceph succeeded"
+        else
+          echo "Hugo deploy failed, falling back to AWS CLI..."
+          aws s3 sync public/ "s3://releases-qa-documentize-com/" \
+            --endpoint-url "https://s3.dynabic.com" \
+            --region "us-east-1" \
+            --delete
+          echo "AWS CLI deployment completed"
+        fi
     - name: Deploy to Ceph (production only)
       if: ${{ github.event.inputs.environment == 'production' }}
       run: hugo deploy --config "configs/releases.documentize.com.toml" --target "production_ceph" --force
