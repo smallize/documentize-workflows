@@ -51,7 +51,7 @@ jobs:
         else
           echo "Hugo deploy failed, falling back to AWS CLI..."
           aws s3 sync public/ "s3://reference-qa-documentize-com/" \
-            --endpoint-url "https://s3.dynabic.com" \
+            --endpoint-url "https://s3-admin-qa.dynabic.com" \
             --region "us-east-1" \
             --delete
           echo "AWS CLI deployment completed"
