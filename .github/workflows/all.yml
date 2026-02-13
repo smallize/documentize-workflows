@@ -37,7 +37,7 @@ jobs:
           TARGET_ENVIRONMENT: ${{ github.event.inputs.environment }}
         run: |
           # Use jq to filter out the workflows with the specific filenames
-          jq -r '.workflows[] | select(.path != "reference.documentize.com-metadata.yml" and .path != "all.yml") | .id' workflows.json | while read workflow_id; do
+          jq -r '.workflows[] | select(.path != ".github/workflows/reference.documentize.com-metadata.yml" and .path != ".github/workflows/all.yml") | .id' workflows.json | while read workflow_id; do
             echo "Dispatching workflow ID: $workflow_id for environment: ${TARGET_ENVIRONMENT}"
             curl -s -X POST \
               -H "Authorization: token ${REPO_TOKEN}" \
