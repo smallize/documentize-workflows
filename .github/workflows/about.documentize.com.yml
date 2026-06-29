@@ -10,7 +10,7 @@ jobs:
       with:
           repository: smallize/documentize
           token: ${{ secrets.REPO_TOKEN }}
-          fetch-depth: 0 
+          fetch-depth: 0
           submodules: true
     - name: Setup Hugo
       uses: peaceiris/actions-hugo@v2
@@ -21,11 +21,11 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: 18
-
-    - name: Build 
+    - name: Build
       run: hugo --config "configs/about.documentize.com.toml","configs/common.documentize.com.toml" -b "https://about.documentize.com" --cleanDestinationDir --minify --templateMetrics --templateMetricsHints --enableGitInfo
-    - name: Deploy
-      run: hugo deploy --config "configs/about.documentize.com.toml" --maxDeletes=-1 --target "production" --invalidateCDN --force
+    - name: Deploy to Ceph
+      run: hugo deploy --config "configs/about.documentize.com.toml" --maxDeletes=-1 --target "production_ceph" --force
       env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.CEPH_ABOUT_DOCUMENTIZE_COM_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.CEPH_ABOUT_DOCUMENTIZE_COM_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: us-east-1

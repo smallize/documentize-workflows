@@ -16,7 +16,7 @@ jobs:
       with:
           repository: smallize/documentize
           token: ${{ secrets.REPO_TOKEN }}
-          fetch-depth: 0 
+          fetch-depth: 0
           submodules: true
     - name: Setup Hugo
       uses: peaceiris/actions-hugo@v2
@@ -27,39 +27,23 @@ jobs:
       id: base-url
       run: |
         if [ "${{ github.event.inputs.environment }}" = "production" ]; then
-          echo "::set-output name=url::https://blog.documentize.com"
+          echo "url=https://blog.documentize.com" >> $GITHUB_OUTPUT
         else
-          echo "::set-output name=url::https://blog-qa.documentize.com"
+          echo "url=https://blog-qa.documentize.com" >> $GITHUB_OUTPUT
         fi
-    - name: Build 
+    - name: Build
       run: hugo --config "configs/blog.documentize.com.toml","configs/common.documentize.com.toml" -b "${{ steps.base-url.outputs.url }}" --cleanDestinationDir --minify --templateMetrics --templateMetricsHints --enableGitInfo
-    - name: Deploy
-      run: hugo deploy --config "configs/blog.documentize.com.toml" --maxDeletes=-1 --target "${{ github.event.inputs.environment }}" --invalidateCDN --force
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.ACCESS_KEY }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.SECRET_ACCESS }}
-    - name: Deploy to Ceph (staging only)
+    - name: Deploy to Ceph (staging)
       if: ${{ github.event.inputs.environment == 'staging' }}
-      run: hugo deploy --config "configs/blog.documentize.com.toml" --target "staging_ceph" --force
+      run: hugo deploy --config "configs/blog.documentize.com.toml" --maxDeletes=-1 --target "staging_ceph" --force
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.CEPH_QA_ROOT_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.CEPH_QA_ROOT_SECRET_ACCESS_KEY }}
         AWS_DEFAULT_REGION: us-east-1
-    - name: Deploy to Ceph (production only)
+    - name: Deploy to Ceph (production)
       if: ${{ github.event.inputs.environment == 'production' }}
+      run: hugo deploy --config "configs/blog.documentize.com.toml" --maxDeletes=-1 --target "production_ceph" --force
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.CEPH_BLOG_DOCUMENTIZE_COM_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.CEPH_BLOG_DOCUMENTIZE_COM_SECRET_ACCESS_KEY }}
         AWS_DEFAULT_REGION: us-east-1
-      run: |
-        echo "Deploying to Ceph production..."
-        if hugo deploy --config "configs/blog.documentize.com.toml" --target "production_ceph" --force; then
-          echo "Hugo deploy to Ceph succeeded"
-        else
-          echo "Hugo deploy failed, falling back to AWS CLI..."
-          aws s3 sync public/ "s3://blog-documentize-com/" \
-            --endpoint-url "https://s3.dynabic.com" \
-            --region "us-east-1" \
-            --delete
-          echo "AWS CLI deployment completed"
-        fi
